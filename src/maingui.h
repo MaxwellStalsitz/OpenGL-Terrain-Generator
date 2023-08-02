@@ -22,7 +22,7 @@ void styleInitialization() {
 	
     font1 = io.Fonts->AddFontFromFileTTF(fontPath, 24.0f, nullptr); // normal font
     font2 = io.Fonts->AddFontFromFileTTF(fontPath, 12.0f, nullptr); // smaller font
-    font3 = io.Fonts->AddFontFromFileTTF(fontPath, 36.0f, nullptr); // larger font
+    font3 = io.Fonts->AddFontFromFileTTF(fontPath, 30.0f, nullptr); // larger font
     font4 = io.Fonts->AddFontFromFileTTF(fontPath, 6.0f, nullptr); // smallest font
 
     // ------------------------------------------------------------------------
@@ -82,16 +82,90 @@ bool centerButton(const char* label, float alignment = 0.5f) // from ocornut
     return ImGui::Button(label);
 }
 
+void smallSeperator() {
+    ImGui::PushFont(font4);
+    ImGui::Text("");
+    ImGui::Separator();
+    ImGui::Text("");
+    ImGui::PopFont();
+}
+
+void debugWindow(ImVec2 windowSize){
+    ImGui::Begin("Debug Window");
+
+    ImGui::PushFont(font3);
+    ImGui::Text("Procedural Terrain Generator Metrics");
+    ImGui::PopFont();
+    ImGui::Separator();
+    ImGui::Text("");
+
+    ImGui::Text("Framerate: %i", (int)ImGui::GetIO().Framerate);
+    ImGui::SameLine();
+    ImGui::Text("(ms/frame : %f)", deltaTime * 1000);
+
+    ImGui::Text("Vertices: %i", terrainMesh.vertices.size());
+    ImGui::Text("Indices: %i", terrainMesh.indices.size());
+    ImGui::SameLine();
+    ImGui::Text("(Triangles: %i)", terrainMesh.indices.size() / 3);
+    smallSeperator();
+    ImGui::Text("");
+
+    // ------------------------------------------------------------------------
+    //performance graph
+
+    static float values[25] = {};
+    static int values_offset = 0;
+    static double refresh_time = 0.1;
+
+    if (refresh_time == 0.0)
+        refresh_time = ImGui::GetTime();
+
+    while (refresh_time < ImGui::GetTime()) {
+        values[values_offset] = (int)ImGui::GetIO().Framerate;
+        values_offset = (values_offset + 1) % IM_ARRAYSIZE(values);
+        refresh_time += 1.0f / 60.0f;
+    }
+
+    float average = 0.0f;
+
+    for (int n = 0; n < IM_ARRAYSIZE(values); n++)
+        average += values[n];
+    average /= (float)IM_ARRAYSIZE(values);
+
+    char overlay[32];
+    sprintf_s(overlay, "Average: %f", average); //writing out fps average above graph
+
+    ImGui::Text("FPS Graph:");
+
+    if (ImGui::BeginChild("Graph", ImVec2(windowSize.x * 0.9, windowSize.y * 0.4), false, window_flags_default)) {
+        ImGui::PlotLines("", values, IM_ARRAYSIZE(values), values_offset, overlay, average + (average / 10), average - (average / 10), ImVec2(windowSize.x * 0.85, windowSize.y * 0.4));
+        
+        ImGui::EndChild();
+    }
+    
+    ImGui::End();
+}
+
 void interactiveUI() {
+
     ImVec2 windowSize = ImVec2(screenWidth * 0.3, screenHeight * 0.95);
 
     if (!imguiInit) {
         ImGui::SetNextWindowSize(windowSize);
         ImGui::SetNextWindowPos(ImVec2(screenWidth - windowSize.x - screenWidth * 0.01, screenHeight * 0.0125));
-        
-        imguiInit = true;
     }
-    
+
+    windowSize = ImVec2(screenWidth * 0.325, screenHeight * 0.45);
+
+    if (!imguiInit) {
+        ImGui::SetNextWindowSize(windowSize);
+        ImGui::SetNextWindowPos(ImVec2(screenWidth * 0.01, screenHeight * 0.01));
+    }
+
+    debugWindow(windowSize);
+
+    // ------------------------------------------------------------------------
+
     ImGui::Begin("Terrain Parameters", nullptr, window_flags_default);
 
     static float lightPosVec3[3] = { lightPos.x, lightPos.y, lightPos.z };
@@ -168,6 +242,7 @@ void interactiveUI() {
         terrainMesh = updateMesh(terrainMesh);
     }
 
+    imguiInit = true;
     ImGui::End();
 }
 

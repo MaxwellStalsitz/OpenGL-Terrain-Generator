@@ -61,6 +61,7 @@ bool imguiInit = false;
 
 glm::vec3 lightPos = glm::vec3(10.0f, 2.0f, 10.0f);
 
+void centerText(std::string text);
 char* concatenateStrings(const char* firstString, const char* secondString);
 glm::vec3 getColor(glm::vec3 color);
 
