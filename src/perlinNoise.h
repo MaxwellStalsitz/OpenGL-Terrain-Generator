@@ -113,6 +113,7 @@ std::vector<glm::vec3> mapPerlinNoise(int gridX, int gridY) {
         }
     }
 
+    meshRendered = true;
     return vertices;
 }
 

@@ -93,12 +93,6 @@ void smallSeperator() {
 void debugWindow(ImVec2 windowSize){
     ImGui::Begin("Debug Window");
 
-    ImGui::PushFont(font3);
-    ImGui::Text("Procedural Terrain Generator Metrics");
-    ImGui::PopFont();
-    ImGui::Separator();
-    ImGui::Text("");
-
     ImGui::Text("Framerate: %i", (int)ImGui::GetIO().Framerate);
     ImGui::SameLine();
     ImGui::Text("(ms/frame : %f)", deltaTime * 1000);
@@ -107,8 +101,20 @@ void debugWindow(ImVec2 windowSize){
     ImGui::Text("Indices: %i", terrainMesh.indices.size());
     ImGui::SameLine();
     ImGui::Text("(Triangles: %i)", terrainMesh.indices.size() / 3);
-    smallSeperator();
+
     ImGui::Text("");
+    ImGui::Text("Camera Position: %f, %f, %f", cameraPos.x, cameraPos.y, cameraPos.z);
+    
+    ImGui::Text("Rendering Time: ");
+    ImGui::SameLine();
+    if (renderingTime != -1.0f) {
+        ImGui::Text("%f", renderingTime);
+    }
+    else {
+        ImGui::Text("N/A");
+    }
+    
+    smallSeperator();
 
     // ------------------------------------------------------------------------
     //performance graph
@@ -137,8 +143,8 @@ void debugWindow(ImVec2 windowSize){
 
     ImGui::Text("FPS Graph:");
 
-    if (ImGui::BeginChild("Graph", ImVec2(windowSize.x * 0.9, windowSize.y * 0.4), false, window_flags_default)) {
-        ImGui::PlotLines("", values, IM_ARRAYSIZE(values), values_offset, overlay, average + (average / 10), average - (average / 10), ImVec2(windowSize.x * 0.85, windowSize.y * 0.4));
+    if (ImGui::BeginChild("Graph", ImVec2(windowSize.x * 0.95, windowSize.y * 0.4), false, window_flags_default)) {
+        ImGui::PlotLines("", values, IM_ARRAYSIZE(values), values_offset, overlay, rollingMaximum, rollingMinimum, ImVec2(windowSize.x * 0.95, windowSize.y * 0.4));
         
         ImGui::EndChild();
     }
@@ -239,6 +245,7 @@ void interactiveUI() {
     ImGui::Separator();
 
     if (centerButton("Generate / Update Mesh", 0.5f)) {
+        beforeTime = glfwGetTime();
         terrainMesh = updateMesh(terrainMesh);
     }
 

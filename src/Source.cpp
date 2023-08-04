@@ -118,6 +118,20 @@ void update() {
         fixedDeltaTime--;
     }
 
+    averageTimeElapsed += deltaTime;
+
+    if (meshRendered == true) {
+        afterTime = glfwGetTime();
+        renderingTime = afterTime - beforeTime;
+
+        updateAverages();
+        meshRendered = false;
+    }
+
+    if (averageTimeElapsed >= 1.5f){ 
+        updateAverages();
+    }
+
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
     //prevents camera jerk at start
@@ -212,6 +226,14 @@ int WinMain()
     //glfw shutdown
     glfwTerminate();
     return 0;
+}
+
+void updateAverages() {
+    int fps = (int)ImGui::GetIO().Framerate;
+
+    averageTimeElapsed = 0.0f;
+    rollingMinimum = (rollingMinimum < fps || rollingMinimum == -1) ? fps : rollingMinimum;
+    rollingMaximum = (rollingMaximum > fps || rollingMaximum == -1) ? fps : rollingMaximum;
 }
 
 void centerText(std::string text) {

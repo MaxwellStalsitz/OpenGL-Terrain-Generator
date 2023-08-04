@@ -59,8 +59,17 @@ int screenHeight = 1080;
 
 bool imguiInit = false;
 
+float averageTimeElapsed = 0.0f;
+int rollingMinimum = -1;
+int rollingMaximum = -1;
+
+float beforeTime;
+float afterTime;
+bool meshRendered = false;
+
 glm::vec3 lightPos = glm::vec3(10.0f, 2.0f, 10.0f);
 
+void updateAverages();
 void centerText(std::string text);
 char* concatenateStrings(const char* firstString, const char* secondString);
 glm::vec3 getColor(glm::vec3 color);
@@ -91,6 +100,8 @@ float ambientStrength = 0.35;
 glm::vec3 sunDir = glm::vec3(0.8, 0.4, 0.2);
 glm::vec3 sunColor = glm::vec3(0.9, 0.6, 0);
 glm::vec3 skyColor = glm::vec3(0.5, 0.8, 0.9);
+
+float renderingTime = -1.0f;
 
 // ------------------------------------------------------------------------
 
