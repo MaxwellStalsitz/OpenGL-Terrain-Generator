@@ -68,6 +68,9 @@ float afterTime;
 bool meshRendered = false;
 
 glm::vec3 lightPos = glm::vec3(10.0f, 2.0f, 10.0f);
+bool isFlat = false;
+
+float mainMenuBarHeight = 0.0f;
 
 void updateAverages();
 void centerText(std::string text);
@@ -75,6 +78,8 @@ char* concatenateStrings(const char* firstString, const char* secondString);
 glm::vec3 getColor(glm::vec3 color);
 
 // ------------------------------------------------------------------------
+
+glm::vec3 backgroundColor = getColor(glm::vec3(98, 157, 217)); //rgb
 
 int seed;
 
@@ -100,6 +105,10 @@ float ambientStrength = 0.35;
 glm::vec3 sunDir = glm::vec3(0.8, 0.4, 0.2);
 glm::vec3 sunColor = glm::vec3(0.9, 0.6, 0);
 glm::vec3 skyColor = glm::vec3(0.5, 0.8, 0.9);
+
+static ImVec4 sunColorVar = ImVec4(sunColor.x, sunColor.y, sunColor.z, 1.0f);
+static ImVec4 skyColorVar = ImVec4(skyColor.x, skyColor.y, skyColor.z, 1.0f);
+static ImVec4 backgroundColorVar = ImVec4(backgroundColor.x, backgroundColor.y, backgroundColor.z, 1.0f);
 
 float renderingTime = -1.0f;
 

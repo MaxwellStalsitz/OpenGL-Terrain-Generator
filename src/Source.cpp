@@ -30,7 +30,7 @@ int init() {
     glfwWindowHint(GLFW_AUTO_ICONIFY, GL_FALSE);
 
     //creating the window with according width and height
-    window = glfwCreateWindow(screenWidth, screenHeight, "OpenGL Rendering Engine", nullptr /*add glfwGetPrimaryMonitor() here for fullscreen*/, nullptr);
+    window = glfwCreateWindow(screenWidth, screenHeight, "OpenGL Rendering Engine", glfwGetPrimaryMonitor(), nullptr);
 
     //fail case for glfw
     if (window == nullptr) {
@@ -89,6 +89,11 @@ int init() {
     // ------------------------------------------------------------------------
 
     styleInitialization();
+    imguiInit = false;
+
+    glm::vec3 startPos = glm::vec3(10 * meshScale / 2, amplitude * meshScale, 10 * meshScale / 2);
+    cameraPos = startPos;
+    desiredPos = startPos;
 
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 330");
@@ -140,7 +145,6 @@ void update() {
     direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
 
     //window refresh
-    glm::vec3 backgroundColor = getColor(glm::vec3(98, 157, 217)); //rgb
     glClearColor(backgroundColor.x, backgroundColor.y, backgroundColor.z, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -177,6 +181,7 @@ void update() {
 
     glDrawElements(GL_TRIANGLES, terrainMesh.indices.size(), GL_UNSIGNED_INT, nullptr);
 
+    mainMenuBar(window);
     if (paused) {
         interactiveUI();
     }

@@ -61,10 +61,6 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     if (key == GLFW_KEY_ESCAPE && action == 1) {
         paused = !paused;
     }
-
-    if (key == GLFW_KEY_SPACE && action == 1) {
-        glfwSetWindowShouldClose(window, true);
-    }
 }
 //input (called every frame)
 void processInput(GLFWwindow* window)

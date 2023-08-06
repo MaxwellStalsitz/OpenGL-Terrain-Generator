@@ -9,7 +9,7 @@ ImFont* font2;
 ImFont* font3;
 ImFont* font4;
 
-ImGuiWindowFlags window_flags_default;
+ImGuiWindowFlags window_flags_default = ImGuiWindowFlags_NoBringToFrontOnFocus;
 ImGuiWindowFlags window_flags_transparent = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoBringToFrontOnFocus;
 
 void styleInitialization() {
@@ -90,8 +90,47 @@ void smallSeperator() {
     ImGui::PopFont();
 }
 
+void smallSpace() {
+    ImGui::PushFont(font4);
+    ImGui::Text("");
+    ImGui::PopFont();
+}
+
+void lockWindow(const char* windowName) { // prevents window from going above main menu bar
+    ImGuiWindow* targetWindow = ImGui::FindWindowByName(windowName);
+
+    ImVec2 windowPos = ImVec2(targetWindow->Pos.x, targetWindow->Pos.y);
+    ImVec2 windowSize = ImVec2(targetWindow->Size.x, targetWindow->Size.y);
+
+    ImVec2 targetPos = windowPos;
+
+    bool needsClampToScreen = false;
+
+    if (windowPos.y < mainMenuBarHeight) {
+        needsClampToScreen = true;
+        targetPos.y = mainMenuBarHeight;
+    }
+    if (windowPos.y + windowSize.y > screenHeight) {
+        needsClampToScreen = true;
+        targetPos.y = screenHeight - windowSize.y;
+    }
+    if (windowPos.x < 0) {
+        needsClampToScreen = true;
+        targetPos.x = 0;
+    }
+    if (windowPos.x + windowSize.x > screenWidth) {
+        needsClampToScreen = true;
+        targetPos.x = screenWidth - windowSize.x;
+    }
+
+    if (needsClampToScreen) {
+        ImGui::SetNextWindowPos(targetPos);
+    }
+
+}
+
 void debugWindow(ImVec2 windowSize){
-    ImGui::Begin("Debug Window");
+    ImGui::Begin("Debug Window", nullptr, window_flags_default);
 
     ImGui::Text("Framerate: %i", (int)ImGui::GetIO().Framerate);
     ImGui::SameLine();
@@ -143,106 +182,170 @@ void debugWindow(ImVec2 windowSize){
 
     ImGui::Text("FPS Graph:");
 
-    if (ImGui::BeginChild("Graph", ImVec2(windowSize.x * 0.95, windowSize.y * 0.4), false, window_flags_default)) {
-        ImGui::PlotLines("", values, IM_ARRAYSIZE(values), values_offset, overlay, rollingMaximum, rollingMinimum, ImVec2(windowSize.x * 0.95, windowSize.y * 0.4));
-        
-        ImGui::EndChild();
-    }
+    ImGui::BeginChild("Graph", ImVec2(windowSize.x * 0.95, windowSize.y * 0.4), false, window_flags_default);
+    ImGui::PlotLines("", values, IM_ARRAYSIZE(values), values_offset, overlay, rollingMaximum, rollingMinimum, ImVec2(windowSize.x * 0.95, windowSize.y * 0.4));
+    ImGui::EndChild();
     
     ImGui::End();
 }
 
-void interactiveUI() {
+ImVec4 colorPicker(ImVec4 colorInput, char* name) {
 
-    ImVec2 windowSize = ImVec2(screenWidth * 0.3, screenHeight * 0.95);
+    ImVec4 newColor = colorInput;
 
-    if (!imguiInit) {
-        ImGui::SetNextWindowSize(windowSize);
-        ImGui::SetNextWindowPos(ImVec2(screenWidth - windowSize.x - screenWidth * 0.01, screenHeight * 0.0125));
+    if (ImGui::ColorButton(name, newColor, window_flags_default, ImVec2((screenWidth * 0.02605f), (screenHeight * 0.0463f)))) {
+        ImGui::OpenPopup(name);
     }
 
-    windowSize = ImVec2(screenWidth * 0.325, screenHeight * 0.45);
+    if (ImGui::BeginPopup(name))
+    {
+        ImGui::Text(name);
+        ImGui::Separator();
+        ImGui::ColorPicker4("##c", (float*)&newColor, window_flags_default | ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoSmallPreview);
+        ImGui::SameLine();
+
+        ImGui::EndPopup();
+    }
+
+    return newColor;
+}
+
+void mainMenuBar(GLFWwindow* window) {
+    ImGui::BeginMainMenuBar();
+
+    mainMenuBarHeight = ImGui::GetWindowSize().y;
+
+    if (ImGui::BeginMenu("File")) {
+
+        if (ImGui::MenuItem("Shut Down"))
+            glfwSetWindowShouldClose(window, GL_TRUE);
+
+        ImGui::EndMenu();
+    }
+
+    if (ImGui::BeginMenu("Edit")) {
+
+        ImGui::EndMenu();
+    }
+
+    centerText("OpenGL Terrain Generator");
+
+    ImGui::EndMainMenuBar();
+}
+
+void interactiveUI() {
+
+    ImVec2 windowSize = ImVec2(screenWidth * 0.325, screenHeight * 0.45);
 
     if (!imguiInit) {
         ImGui::SetNextWindowSize(windowSize);
-        ImGui::SetNextWindowPos(ImVec2(screenWidth * 0.01, screenHeight * 0.01));
+        ImGui::SetNextWindowPos(ImVec2(screenWidth * 0.01, screenHeight * 0.04));
+    }
+    else {
+        lockWindow("Debug Window");
     }
 
     debugWindow(windowSize);
+
+    windowSize = ImVec2(screenWidth * 0.3, screenHeight * 0.95);
+
+    if (!imguiInit) {
+        ImGui::SetNextWindowSize(windowSize);
+        ImGui::SetNextWindowPos(ImVec2(screenWidth - windowSize.x - screenWidth * 0.01, screenHeight * 0.04));
+    }
+    else {
+        lockWindow("Terrain Parameters");
+    }
 
     // ------------------------------------------------------------------------
 
     ImGui::Begin("Terrain Parameters", nullptr, window_flags_default);
 
-    static float lightPosVec3[3] = { lightPos.x, lightPos.y, lightPos.z };
-    ImGui::InputFloat3("Light Position", lightPosVec3);
-    lightPos = glm::vec3(lightPosVec3[0], lightPosVec3[1], lightPosVec3[2]);
+    if (ImGui::CollapsingHeader("Perlin Variables", ImGuiTreeNodeFlags_DefaultOpen)) {
+        smallSpace();
 
-    static float terrainSize[2] = { gridX, gridY };
-    ImGui::InputFloat2("Terrain Size", terrainSize);
-    gridX = (int)terrainSize[0];
-    gridY = (int)terrainSize[1];
+        ImGui::SliderFloat("Amplitude", &amplitude, 0.0f, 7.5f);
+        ImGui::SliderFloat("Frequency", &frequency, 0.0f, 20.0f);
+        ImGui::SliderFloat("Lacunarity", &lacunarity, 0.0f, 5.0f);
+        ImGui::SliderFloat("Persistence", &persistence, 0.0f, 2.0f);
+        ImGui::SliderInt("Octaves", &octaves, 0, 20);
 
-    static float noiseOffsetSlider[2] = { noiseOffset.x, noiseOffset.y };
-    ImGui::DragFloat2("Offset", noiseOffsetSlider, 0.1f, -500.0f, 500.0f);
-    noiseOffset = glm::vec2(noiseOffsetSlider[0], noiseOffsetSlider[1]);
+        ImGui::Text("");
 
-    ImGui::Text("");
+        ImGui::DragFloat("Noise Scale", &noiseScale, 0.01f, 0.01f, 100.0f);
+        ImGui::DragFloat("Mesh Scale", &meshScale, 0.01f, 0.01f, 10.0f);
 
-    ImGui::SliderFloat("Amplitude", &amplitude, 0.0f, 7.5f);
-    ImGui::SliderFloat("Frequency", &frequency, 0.0f, 20.0f);
-    ImGui::SliderFloat("Lacunarity", &lacunarity, 0.0f, 5.0f);
-    ImGui::SliderFloat("Persistence", &persistence, 0.0f, 2.0f);
-    ImGui::SliderInt("Octaves", &octaves, 0, 20);
+        ImGui::Text("");
+
+        ImGui::Checkbox("Specular Enabled", &isSpecular);
+        ImGui::SameLine();
+        ImGui::Checkbox("Flat Shading", &isFlat);
+
+        smallSpace();
+    }
+
+    if (ImGui::CollapsingHeader("Lighting Settings", ImGuiTreeNodeFlags_DefaultOpen)) {
+
+        smallSpace();
+
+        if (isSpecular)
+            ImGui::DragFloat("Specular Strength", &specularStrength, 0.01f, 0.0f, 1.0f);
+
+        ImGui::DragFloat("Ambient Strength", &ambientStrength, 0.01f, 0.0f, 1.0f);
+        ImGui::DragFloat("Sun Strength", &sunIntensity, 0.01f, 0.0f, 10.0f);
+
+        static float sunDirVec3[3] = { sunDir.x, sunDir.y, sunDir.z };
+        ImGui::DragFloat3("Sun Direction", sunDirVec3, 0.01f, 0.0f, 1.0f);
+        sunDir = glm::vec3(sunDirVec3[0], sunDirVec3[1], sunDirVec3[2]);
+
+        smallSpace();
+
+        float textYVal = ImGui::GetCursorPosY();
+
+        ImGui::SetCursorPosX(screenWidth / 70);
+        ImGui::Text("Sun Color");
+        ImGui::SetCursorPosX(screenWidth / 35.0f);
+
+        sunColorVar = colorPicker(sunColorVar, "Sun Color");
+        sunColor = glm::vec3(sunColorVar.x, sunColorVar.y, sunColorVar.z);
+
+        ImGui::SetCursorPosX(screenWidth / 10);
+        ImGui::SetCursorPosY(textYVal);
+        ImGui::Text("Sky Color");
+        ImGui::SetCursorPosX(screenWidth / 8.5f);
+
+        skyColorVar = colorPicker(skyColorVar, "Sky Color");
+        skyColor = glm::vec3(skyColorVar.x, skyColorVar.y, skyColorVar.z);
+
+        ImGui::SetCursorPosX(screenWidth / 5.5);
+        ImGui::SetCursorPosY(textYVal);
+        ImGui::Text("Background Color");
+        ImGui::SetCursorPosX(screenWidth / 4.55f);
+
+        backgroundColorVar = colorPicker(backgroundColorVar, "Background Color");
+        backgroundColor = glm::vec3(backgroundColorVar.x, backgroundColorVar.y, backgroundColorVar.z);
     
-    ImGui::Text("");
-
-    ImGui::DragFloat("Noise Scale", &noiseScale, 0.01f, 0.01f, 100.0f);
-    ImGui::DragFloat("Mesh Scale", &meshScale, 0.01f, 0.01f, 10.0f);
-
-    ImGui::Text("");
-
-    ImGui::Checkbox("Specular Enabled", &isSpecular);
-
-    if (isSpecular) {
-        ImGui::DragFloat("Specular Strength", &specularStrength, 0.01f, 0.0f, 1.0f);
+        smallSpace();
     }
 
-    ImGui::DragFloat("Ambient Strength", &ambientStrength, 0.01f, 0.0f, 1.0f);
-    ImGui::DragFloat("Sun Strength", &sunIntensity, 0.01f, 0.0f, 10.0f);
+    if (ImGui::CollapsingHeader("Rendering Settings", ImGuiTreeNodeFlags_DefaultOpen)) {
+        smallSpace();
 
-    static float sunDirVec3[3] = { sunDir.x, sunDir.y, sunDir.z };
-    ImGui::DragFloat3("Sun Direction", sunDirVec3, 0.01f, 0.0f, 1.0f);
-    sunDir = glm::vec3(sunDirVec3[0], sunDirVec3[1], sunDirVec3[2]);
+        static float noiseOffsetSlider[2] = { noiseOffset.x, noiseOffset.y };
+        ImGui::DragFloat2("Offset", noiseOffsetSlider, 0.1f, -500.0f, 500.0f);
+        noiseOffset = glm::vec2(noiseOffsetSlider[0], noiseOffsetSlider[1]);
 
-    static float sunColorVec3[3] = { sunColor.x * 255, sunColor.y * 255, sunColor.z * 255 };
-    ImGui::DragFloat3("Sun Color", sunColorVec3, 0.01f, 0.0f, 255.0f);
+        ImGui::InputInt("Seed", &seed);
+        seed = std::clamp(seed, -10000, 10000);
 
-    for (int i = 0; i < 3; i++) {
-        sunColorVec3[i] = glm::clamp(sunColorVec3[i], 0.0f, 255.0f);
+        if (ImGui::Button("Random Seed")) {
+            seed = std::rand() % 20001 - 10000;
+        }
+
+        smallSpace();
     }
 
-    sunColor = glm::vec3(sunColorVec3[0] / 255.0f, sunColorVec3[1] / 255.0f, sunColorVec3[2] / 255.0f);
-
-    static float skyColorVec3[3] = { skyColor.x * 255, skyColor.y * 255, skyColor.z * 255};
-    ImGui::DragFloat3("Sky Color", skyColorVec3, 1.0f, 0.0f, 255.0f);
-
-    for (int i = 0; i < 3; i++) {
-        skyColorVec3[i] = glm::clamp(skyColorVec3[i], 0.0f, 255.0f);
-    }
-
-    skyColor = glm::vec3(skyColorVec3[0] / 255.0f, skyColorVec3[1] / 255.0f, skyColorVec3[2] / 255.0f);
-
-    ImGui::Text("");
-
-    ImGui::InputInt("Seed", &seed);
-    seed = std::clamp(seed, -10000, 10000);
-
-    if (ImGui::Button("Random Seed")) {
-        seed = std::rand() % 20001 - 10000; 
-    }
-
-    ImGui::Separator();
+    smallSeperator();
 
     if (centerButton("Generate / Update Mesh", 0.5f)) {
         beforeTime = glfwGetTime();

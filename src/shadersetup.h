@@ -6,6 +6,7 @@
 
 void setUpShaderVariables(Shader * shader){
 
+    shader->setBool("isFlat", isFlat);
     shader->setVec3("lightPos", lightPos);
     shader->setVec3("cameraPos", cameraPos);
     shader->setVec3("sunDir", sunDir);

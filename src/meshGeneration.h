@@ -190,15 +190,16 @@ Mesh updateMesh(Mesh mesh) {
     Mesh newMesh;
     newMesh = mesh;
 
-    std::vector<glm::vec3> newVertices = mapPerlinNoise(newMesh.size.x, newMesh.size.y);
-    newMesh.vertices = newVertices;
-
     // (we don't need to change indices unless the size is different)
     std::vector<int> newIndices = newMesh.indices;
-    if (glm::vec2(gridX, gridY) != newMesh.size) {
+    if (glm::vec2(gridX, gridY) != mesh.size) {
         newIndices = generateIndicies(gridX, gridY);
+        newMesh.size = glm::vec2(gridX, gridY);
         newMesh.indices = newIndices;
     }
+
+    std::vector<glm::vec3> newVertices = mapPerlinNoise(newMesh.size.x, newMesh.size.y);
+    newMesh.vertices = newVertices;
 
     std::vector<glm::vec3> newNormals = generateNormals(newMesh.vertices, newMesh.indices);
     newMesh.normals = newNormals;
