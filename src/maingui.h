@@ -11,6 +11,7 @@ ImFont* font4;
 
 ImGuiWindowFlags window_flags_default = ImGuiWindowFlags_NoBringToFrontOnFocus;
 ImGuiWindowFlags window_flags_transparent = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoBringToFrontOnFocus;
+ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
 
 void styleInitialization() {
 
@@ -326,6 +327,63 @@ void interactiveUI() {
         backgroundColor = glm::vec3(backgroundColorVar.x, backgroundColorVar.y, backgroundColorVar.z);
     
         smallSpace();
+    }
+
+    if (ImGui::CollapsingHeader("Color Layers", ImGuiTreeNodeFlags_DefaultOpen)) {
+
+        ImGui::SetNextItemOpen(true);
+        if (ImGui::TreeNode("Terrain Colors:"))
+        {
+            for (int i = 0; i < defaultColorSet.size(); i++) {
+                std::string nodeName = defaultColorSet[i].name;
+
+                if (!imguiInit) {
+                    ImGui::SetNextItemOpen(true);
+                }
+
+                if (ImGui::TreeNode((void*)(intptr_t)i, nodeName.c_str(), i)) {
+                    smallSpace();
+                    
+                    float defaultPosY = ImGui::GetCursorPosY();
+
+                    ImGui::SetCursorPosX(ImGui::GetWindowSize().x / 1.27);
+                    ImGui::Text("Color");
+                    ImGui::SetCursorPosX(ImGui::GetWindowSize().x / 1.25);
+                    glm::vec3 oldColor = getColor(defaultColorSet[i].color);
+                    ImVec4 newColor = ImVec4(oldColor.x, oldColor.y, oldColor.z, 1.0f);
+                    newColor = colorPicker(newColor, nodeName.data());
+                    defaultColorSet[i].color = glm::vec3(newColor.x * 255, newColor.y * 255, newColor.z * 255);
+                    ImGui::SetCursorPosY(defaultPosY);
+                    ImGui::Text("Start Height");
+
+                    float newStartHeight = defaultColorSet[i].startHeight;
+
+                    ImGui::DragFloat("##sh", &newStartHeight, 0.001f, -1.0f, 1.0f);
+
+                    if (i != 0 && i != defaultColorSet.size() - 1)
+                        newStartHeight = glm::clamp(newStartHeight, defaultColorSet[i-1].startHeight, defaultColorSet[i+1].startHeight);
+                    else if (i == 0) {
+                        newStartHeight = glm::clamp(newStartHeight, -1.0f, defaultColorSet[i + 1].startHeight);
+                    }
+                    else if (i == defaultColorSet.size() - 1) {
+                        newStartHeight = glm::clamp(newStartHeight, defaultColorSet[i - 1].startHeight, 1.0f);
+                    }
+
+                    defaultColorSet[i].startHeight = newStartHeight;
+
+                    ImGui::Text("Name");
+
+                    ImGui::InputText("##n", nodeName.data(), sizeof(defaultColorSet[i].name));
+                    defaultColorSet[i].name = nodeName.c_str();
+
+                    smallSeperator();
+
+                    ImGui::TreePop();
+                }
+            }
+
+            ImGui::TreePop();
+        }
     }
 
     if (ImGui::CollapsingHeader("Rendering Settings", ImGuiTreeNodeFlags_DefaultOpen)) {
